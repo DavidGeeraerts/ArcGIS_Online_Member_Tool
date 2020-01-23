@@ -31,7 +31,7 @@ setlocal enableextensions
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 SET SCRIPT_NAME=ArcGIS_Online_Member_Tool
-SET SCRIPT_VERSION=0.2.0
+SET SCRIPT_VERSION=0.3.0
 SET SCRIPT_BUILD=20200123-1138
 Title %SCRIPT_NAME% %SCRIPT_VERSION%
 Prompt AOBU$G
@@ -61,6 +61,16 @@ SET ROLE=Student_Publisher
 :: DEFAULT USER Type
 ::	{Creator, GIS Professional Advanced}
 SET USER_TYPE=Creator
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::	ADVANCED SETTINGS
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+:: DEFAULT OU for group search
+SET OU_DN=OU=offerings,OU=groups,OU=managed,DC=evergreen,DC=edu
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
 
@@ -132,35 +142,57 @@ Echo   ******************************************************************
 echo.
 echo  Setting search parameters:
 echo.
+:year
+SET CHECKER=0
 IF DEFINED YEAR Echo Year currently set to: %YEAR%
 echo [REQUIRED] Set the academic year as yyyy:
 SET /P YEAR=Academic Year:
 echo Academic Year set to: %YEAR%
+IF NOT DEFINED YEAR GoTo year
+FOR %%P IN (a b c d e f g h i j k l m n o p q r s t u v w x y z) DO echo %YEAR% | FIND /I "%%P" && SET /A CHECKER=CHECKER+1
+IF %CHECKER% NEQ 0 ECHO Year contains alpha character!
+IF %CHECKER% NEQ 0 GoTo year
 echo.
+:quarter
+SET CHECKER=0
 IF DEFINED QUARTER Echo Quarter currently set to: %QUARTER%
-echo [REQUIRED] Set the academic quarter {fall, winter, spring, summer}:
+echo [REQUIRED] Set the academic quarter {*, fall, winter, spring, summer}:
 SET /P QUARTER=Academic Quarter:
 echo Academic quarter set to: %QUARTER%
+IF NOT DEFINED QUARTER GoTo quarter
+echo %QUARTER% | FIND "*"
+IF %ERRORLEVEL% EQU 0 GoTo skipTQ
+FOR %%P IN (fall winter spring summer Fall Winter Spring Summer) DO IF "%%P"=="%QUARTER%" SET /A CHECKER=CHECKER+1
+IF %CHECKER% LEQ 0 ECHO quarter is invalid!
+IF %CHECKER% LEQ 0 GoTo quarter
+:skipTQ
 echo.
+:keyterm
 IF DEFINED KEY_TERM Echo Key term currently set to: %KEY_TERM%
 echo [REQUIRED] Set a key search term, i.e. GIS:
 SET /P KEY_TERM=Key term:
 echo Search term set to: %KEY_TERM%
+IF NOT DEFINED KEY_TERM GoTo keyterm
+echo %KEY_TERM% | FIND "*"
+IF %ERRORLEVEL% EQU 0 SET KEY_TERM=
+IF %ERRORLEVEL% EQU 0 echo Cannot be "*" wildcard!
+IF %ERRORLEVEL% EQU 0 GoTo keyterm
 echo.
 :: Convert term to numeric
+IF "%QUARTER%"=="*" SET $QUARTER=*
 IF "%QUARTER%"=="fall" SET $QUARTER=10
 IF "%QUARTER%"=="winter" SET $QUARTER=20
 IF "%QUARTER%"=="spring" SET $QUARTER=30
 IF "%QUARTER%"=="summer" SET $QUARTER=40
-dsquery * OU=offerings,OU=groups,OU=managed,DC=evergreen,DC=edu -limit 0 -filter "(&(objectCategory=group)(cn=%YEAR%%$QUARTER%*_STU)(displayName=*%KEY_TERM%*))" -attr name description displayName
-dsquery * OU=offerings,OU=groups,OU=managed,DC=evergreen,DC=edu -limit 0 -filter "(&(objectCategory=group)(cn=%YEAR%%$QUARTER%*_STU)(displayName=*%KEY_TERM%*))" -attr name description displayName > %FILE_OUTPUT%\AD_Group_Search_Results.txt
+dsquery * %OU_DN% -limit 0 -filter "(&(objectCategory=group)(cn=%YEAR%%$QUARTER%*_STU)(displayName=*%KEY_TERM%*))" -attr name description displayName
+dsquery * %OU_DN% -limit 0 -filter "(&(objectCategory=group)(cn=%YEAR%%$QUARTER%*_STU)(displayName=*%KEY_TERM%*))" -attr name description displayName > %FILE_OUTPUT%\AD_Group_Search_Results.txt
 echo.
 :: What to do now?
 echo Search again?
 Echo Choose an action to perform from the list:
 Echo.
 Echo [1] Yes, search again
-Echo [2] Set the group
+Echo [2] Set the group, create csv file
 Echo.
 Choice /c 12
 Echo.
@@ -181,7 +213,7 @@ Echo     Location: Set Group name
 Echo.   
 Echo   ******************************************************************
 echo.
-IF DEFINED YEAR IF DEFINED $QUARTER IF DEFINED KEY_TERM dsquery * OU=offerings,OU=groups,OU=managed,DC=evergreen,DC=edu -limit 0 -filter "(&(objectCategory=group)(cn=%YEAR%%$QUARTER%*_STU)(displayName=*%KEY_TERM%*))" -attr name description displayName
+IF DEFINED YEAR IF DEFINED $QUARTER IF DEFINED KEY_TERM dsquery * %OU_DN% -limit 0 -filter "(&(objectCategory=group)(cn=%YEAR%%$QUARTER%*_STU)(displayName=*%KEY_TERM%*))" -attr name description displayName
 FOR /F "skip=1 delims= " %%P IN (%FILE_OUTPUT%\AD_Group_Search_Results.txt) DO SET GROUP_NAME=%%P
 echo.
 Echo What is the name of the group to use for reference?
@@ -191,7 +223,7 @@ echo current Group name: %GROUP_NAME%
 SET /P GROUP_NAME=Group Name:
 IF NOT DEFINED GROUP_NAME GoTo sGroup
 echo checking group...
-DSQUERY GROUP -o dn OU=offerings,OU=groups,OU=managed,DC=evergreen,DC=edu -name %GROUP_NAME% -limit 1 | DSGET GROUP -samid -desc 2> nul
+DSQUERY GROUP -o dn %OU_DN% -name %GROUP_NAME% -limit 1 | DSGET GROUP -samid -desc 2> nul
 IF %ERRORLEVEL% NEQ 0 GoTo error10
 echo Group is set to: %GROUP_NAME%
 echo.
@@ -292,7 +324,8 @@ GoTo sGroup
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :EOF
-IF EXIST "%FILE_OUTPUT%\int_%GROUP_NAME%_%FILE_NAME%" DEL /F /Q "%FILE_OUTPUT%\int_%GROUP_NAME%_%FILE_NAME%"
+DEL /F /Q "%FILE_OUTPUT%\int_*.csv" 2> nul
+DEL /F /Q "%FILE_OUTPUT%\*.old" 2> nul
 cls
 mode con:cols=55 lines=25
 COLOR 0B
