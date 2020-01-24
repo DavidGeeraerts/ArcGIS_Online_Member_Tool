@@ -31,8 +31,8 @@ setlocal enableextensions
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 SET SCRIPT_NAME=ArcGIS_Online_Member_Tool
-SET SCRIPT_VERSION=0.4.0
-SET SCRIPT_BUILD=20200124-1324
+SET SCRIPT_VERSION=0.5.0
+SET SCRIPT_BUILD=20200124-1350
 Title %SCRIPT_NAME% %SCRIPT_VERSION%
 Prompt AOBU$G
 color 0B
@@ -310,14 +310,24 @@ DSQUERY GROUP -o dn %OU_DN% -name %GROUP_NAME% -limit 1 | DSGET GROUP -samid -de
 IF %ERRORLEVEL% NEQ 0 GoTo error10
 echo Group is set to: %GROUP_NAME%
 echo.
-ECHO Current role: %ROLE%
+:sRole
+IF DEFINED ROLE ECHO Current role: %ROLE%
+SET CHECKER=0
 echo Define Role: ^{Data Editor, Publisher, Student_Publisher, User, Viewer^}
+echo (case sensitive)
 SET /P ROLE=Role:
+FOR %%P IN ("Data Editor" Publisher Student_Publisher User Viewer) DO IF "%ROLE%"=="%%~P" SET /A CHECKER=CHECKER+1
+IF %CHECKER% EQU 0 (ECHO Not a valid entry!) & (SET ROLE=) & (GoTo sRole)
 ECHO Role is set to: %ROLE%
 echo.
-ECHO Current User_Type: %USER_TYPE%
+:sUT
+IF DEFINED USER_TYPE ECHO Current User_Type: %USER_TYPE%
+SET CHECKER=0
 echo Define User_Type: ^{Creator, GIS Professional Advanced^}
+echo (case sensitive)
 SET /P User_Type=User_Type:
+FOR %%P IN (Creator "GIS Professional Advanced") DO IF "%User_Type%"=="%%~P" SET /A CHECKER=CHECKER+1
+IF %CHECKER% EQU 0 (ECHO Not a valid entry!) & (SET User_Type=) & (GoTo sUT)
 ECHO User_Type is set to: %USER_TYPE%
 echo.
 IF EXIST "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%" copy /Y "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%" "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%.old"

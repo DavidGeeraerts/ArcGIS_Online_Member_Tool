@@ -18,8 +18,14 @@
 [//]: # (#### Deprecated)
 
 ---
+### Version 0.5.0 (2020-01-24)
+#### Added
+- data validation for "Role"
+- data validation for "USER_TYPE"
 
-### Version 0.3.0 (2020-01-24)
+---
+
+### Version 0.4.0 (2020-01-24)
 #### Added
 - Debugger
 - Year autofill
@@ -28,8 +34,6 @@
 - Feedback from advanced search
 - Intermediary file cleanup
 
-
----
 
 ### Version 0.3.0 (2020-01-23)
 #### Added
