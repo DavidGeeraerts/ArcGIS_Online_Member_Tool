@@ -31,8 +31,8 @@ setlocal enableextensions
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 SET SCRIPT_NAME=ArcGIS_Online_Member_Tool
-SET SCRIPT_VERSION=0.3.0
-SET SCRIPT_BUILD=20200123-1138
+SET SCRIPT_VERSION=0.4.0
+SET SCRIPT_BUILD=20200124-1324
 Title %SCRIPT_NAME% %SCRIPT_VERSION%
 Prompt AOBU$G
 color 0B
@@ -70,6 +70,9 @@ SET USER_TYPE=Creator
 :: DEFAULT OU for group search
 SET OU_DN=OU=offerings,OU=groups,OU=managed,DC=evergreen,DC=edu
 
+:: DEGUGGER
+:: Impersonate a User
+SET DEBUG_USER=
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
@@ -84,7 +87,14 @@ SET OU_DN=OU=offerings,OU=groups,OU=managed,DC=evergreen,DC=edu
 ::	Defaults, not recommended to change in script, rather
 ::		change during commandlet run time, using menu system.
 SET DC=%LOGONSERVER:~2%
-SET cUSERNAME=%USERNAME%
+IF NOT DEFINED DEBUG_USER SET $USERNAME=%USERNAME%
+IF DEFINED DEBUG_USER SET $USERNAME=%DEBUG_USER%
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+:: Autofills
+:: Year
+::	contains a trailing space
+FOR /F "tokens=4 delims=/ " %%P IN ('date /T') DO SET YEAR=%%P
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :Main
@@ -105,7 +115,7 @@ echo.
 Echo  Log File Path: %FILE_OUTPUT%
 Echo  Log File Name: ^<groupName^>_%FILE_NAME%
 Echo.
-Echo  Running Account: %cUSERNAME%
+Echo  Running Account: %USERNAME%
 Echo  Domain: %USERDNSDOMAIN%
 Echo  Domain Controller: %DC%
 echo.
@@ -118,18 +128,77 @@ echo.
 Echo.
 Echo Choose an action to perform from the list:
 Echo.
-Echo [1] Search for a group
-Echo [2] Set group name
-Echo [3] Exit
+Echo [1] Search my offerings
+Echo [2] Advanced search for a group
+Echo [3] Set group name, create csv file
+Echo [4] Exit
 Echo.
-Choice /c 123
+Choice /c 1234
 Echo.
-If ERRORLevel 3 GoTo EOF
-If ERRORLevel 2 GoTo sGroup
+If ERRORLevel 4 GoTo EOF
+If ERRORLevel 3 GoTo sGroup
+If ERRORLevel 2 GoTo asearch
 If ERRORLevel 1 GoTo search
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+:: Selective Search by User
 :search
+cls
+mode con:cols=72
+mode con:lines=40
+color 0B
+Echo   ******************************************************************
+echo.
+Echo     Location: Selective offering search         
+echo.
+echo		User:%$USERNAME%
+echo.
+Echo   ******************************************************************
+echo.
+:year
+SET CHECKER=0
+IF DEFINED YEAR Echo Year currently set to: %YEAR%
+echo [REQUIRED] Set the academic year as yyyy:
+SET /P YEAR=Academic Year:
+echo Academic Year set to: %YEAR%
+IF NOT DEFINED YEAR GoTo year
+FOR %%P IN (a b c d e f g h i j k l m n o p q r s t u v w x y z) DO echo %YEAR% | FIND /I "%%P" && SET /A CHECKER=CHECKER+1
+IF %CHECKER% NEQ 0 ECHO Year contains alpha character!
+IF %CHECKER% NEQ 0 GoTo year
+echo.
+:runUS
+IF EXIST "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt" DEL /F /Q "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt"
+DSQUERY USER -o dn -name %$USERNAME% | DSGET USER -memberof 2> nul | DSGET group -samid 2> nul > "%FILE_OUTPUT%\int_%$USERNAME%_Offering.txt"
+FINDSTR /R /C:"%YEAR%*" "%FILE_OUTPUT%\int_%$USERNAME%_Offering.txt" > "%FILE_OUTPUT%\int_%$USERNAME%_%YEAR%_Offering.txt"
+FOR /F "usebackq tokens=1 delims=_" %%P IN ("%FILE_OUTPUT%\int_%$USERNAME%_%YEAR%_Offering.txt") DO dsquery * %OU_DN% -limit 0 -filter "(&(objectCategory=group)(cn=%%P_STU))" -attr name description displayName >> "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt"
+IF EXIST "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt" echo These are your offerings for %YEAR%:
+IF EXIST "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt" FINDSTR /R /C:"%YEAR%*" "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt" 2> nul
+IF NOT EXIST "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt" ECHO No offerings found!
+echo.
+IF NOT EXIST "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt" PAUSE
+IF NOT EXIST "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt" GoTo Main
+:skipUS
+
+:: What to do now?
+echo What to do next?
+Echo Choose an action to perform from the list:
+Echo.
+Echo [1] Set the group, create csv file
+Echo [2] Advanced search
+echo [3] Main menu
+echo [4] Exit
+Echo.
+Choice /c 1234
+Echo.
+If ERRORLevel 4 GoTo EOF
+If ERRORLevel 3 GoTo Main
+If ERRORLevel 2 GoTo aGroup
+If ERRORLevel 1 GoTo sGroup
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+:: Advanced Search
+:asearch
 cls
 mode con:cols=72
 mode con:lines=40
@@ -147,36 +216,38 @@ SET CHECKER=0
 IF DEFINED YEAR Echo Year currently set to: %YEAR%
 echo [REQUIRED] Set the academic year as yyyy:
 SET /P YEAR=Academic Year:
-echo Academic Year set to: %YEAR%
 IF NOT DEFINED YEAR GoTo year
 FOR %%P IN (a b c d e f g h i j k l m n o p q r s t u v w x y z) DO echo %YEAR% | FIND /I "%%P" && SET /A CHECKER=CHECKER+1
 IF %CHECKER% NEQ 0 ECHO Year contains alpha character!
+IF %CHECKER% NEQ 0 SET YEAR=
 IF %CHECKER% NEQ 0 GoTo year
+echo Academic Year set to: %YEAR%
 echo.
 :quarter
 SET CHECKER=0
 IF DEFINED QUARTER Echo Quarter currently set to: %QUARTER%
 echo [REQUIRED] Set the academic quarter {*, fall, winter, spring, summer}:
 SET /P QUARTER=Academic Quarter:
-echo Academic quarter set to: %QUARTER%
 IF NOT DEFINED QUARTER GoTo quarter
 echo %QUARTER% | FIND "*"
 IF %ERRORLEVEL% EQU 0 GoTo skipTQ
 FOR %%P IN (fall winter spring summer Fall Winter Spring Summer) DO IF "%%P"=="%QUARTER%" SET /A CHECKER=CHECKER+1
 IF %CHECKER% LEQ 0 ECHO quarter is invalid!
+IF %CHECKER% LEQ 0 SET QUARTER=
 IF %CHECKER% LEQ 0 GoTo quarter
+echo Academic quarter set to: %QUARTER%
 :skipTQ
 echo.
 :keyterm
 IF DEFINED KEY_TERM Echo Key term currently set to: %KEY_TERM%
 echo [REQUIRED] Set a key search term, i.e. GIS:
 SET /P KEY_TERM=Key term:
-echo Search term set to: %KEY_TERM%
 IF NOT DEFINED KEY_TERM GoTo keyterm
 echo %KEY_TERM% | FIND "*"
 IF %ERRORLEVEL% EQU 0 SET KEY_TERM=
 IF %ERRORLEVEL% EQU 0 echo Cannot be "*" wildcard!
 IF %ERRORLEVEL% EQU 0 GoTo keyterm
+echo Search term set to: %KEY_TERM%
 echo.
 :: Convert term to numeric
 IF "%QUARTER%"=="*" SET $QUARTER=*
@@ -184,6 +255,13 @@ IF "%QUARTER%"=="fall" SET $QUARTER=10
 IF "%QUARTER%"=="winter" SET $QUARTER=20
 IF "%QUARTER%"=="spring" SET $QUARTER=30
 IF "%QUARTER%"=="summer" SET $QUARTER=40
+:::::::::::::::::::::::::::::::::::::::::
+:: temp DEBUG
+:: ECHO OU_DN: %OU_DN%
+:: echo YEAR$QUARTER: %YEAR%%$QUARTER%
+:: echo KEY_TERM: %KEY_TERM%
+:::::::::::::::::::::::::::::::::::::::::
+:: Search for groups
 dsquery * %OU_DN% -limit 0 -filter "(&(objectCategory=group)(cn=%YEAR%%$QUARTER%*_STU)(displayName=*%KEY_TERM%*))" -attr name description displayName
 dsquery * %OU_DN% -limit 0 -filter "(&(objectCategory=group)(cn=%YEAR%%$QUARTER%*_STU)(displayName=*%KEY_TERM%*))" -attr name description displayName > %FILE_OUTPUT%\AD_Group_Search_Results.txt
 echo.
@@ -193,11 +271,13 @@ Echo Choose an action to perform from the list:
 Echo.
 Echo [1] Yes, search again
 Echo [2] Set the group, create csv file
+echo [3] Main menu
 Echo.
-Choice /c 12
+Choice /c 123
 Echo.
+If ERRORLevel 3 GoTo Main
 If ERRORLevel 2 GoTo sGroup
-If ERRORLevel 1 GoTo search
+If ERRORLevel 1 GoTo asearch
 
 GoTo sGroup
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -213,8 +293,11 @@ Echo     Location: Set Group name
 Echo.   
 Echo   ******************************************************************
 echo.
+IF EXIST "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt" echo These are your offerings for %YEAR%:
+IF EXIST "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt" FINDSTR /R /C:"%YEAR%*" "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt" 2> nul
 IF DEFINED YEAR IF DEFINED $QUARTER IF DEFINED KEY_TERM dsquery * %OU_DN% -limit 0 -filter "(&(objectCategory=group)(cn=%YEAR%%$QUARTER%*_STU)(displayName=*%KEY_TERM%*))" -attr name description displayName
-FOR /F "skip=1 delims= " %%P IN (%FILE_OUTPUT%\AD_Group_Search_Results.txt) DO SET GROUP_NAME=%%P
+IF EXIST "%FILE_OUTPUT%\AD_Group_Search_Results.txt" FOR /F "skip=1 delims= " %%P IN (%FILE_OUTPUT%\AD_Group_Search_Results.txt) DO SET GROUP_NAME=%%P
+IF EXIST "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt" FOR /F "tokens=1 delims= " %%P IN ('FINDSTR /R /C:"....%YEAR%" "%FILE_OUTPUT%\%$USERNAME%_%YEAR%_Offering.txt"') DO SET GROUP_NAME=%%P
 echo.
 Echo What is the name of the group to use for reference?
 echo This should be an *_STU group with students!
@@ -324,7 +407,7 @@ GoTo sGroup
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :EOF
-DEL /F /Q "%FILE_OUTPUT%\int_*.csv" 2> nul
+DEL /F /Q "%FILE_OUTPUT%\int_*" 2> nul
 DEL /F /Q "%FILE_OUTPUT%\*.old" 2> nul
 cls
 mode con:cols=55 lines=25
