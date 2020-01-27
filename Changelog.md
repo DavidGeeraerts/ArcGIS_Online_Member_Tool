@@ -18,12 +18,17 @@
 [//]: # (#### Deprecated)
 
 ---
+### Version 0.6.0 (2020-01-27)
+#### Changed
+- Search parameters not case sensitive
+
+---
+
 ### Version 0.5.0 (2020-01-24)
 #### Added
 - data validation for "Role"
 - data validation for "USER_TYPE"
 
----
 
 ### Version 0.4.0 (2020-01-24)
 #### Added
