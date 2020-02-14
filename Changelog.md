@@ -18,11 +18,16 @@
 [//]: # (#### Deprecated)
 
 ---
+### Version 0.6.1 (2020-02-14)
+#### Changed
+- formatting style
+---
+
+
 ### Version 0.6.0 (2020-01-27)
 #### Changed
 - Search parameters not case sensitive
 
----
 
 ### Version 0.5.0 (2020-01-24)
 #### Added
