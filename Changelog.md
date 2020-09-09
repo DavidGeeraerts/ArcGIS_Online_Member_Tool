@@ -18,11 +18,19 @@
 [//]: # (#### Deprecated)
 
 ---
+### Version 0.7.0 (2020-09-09)
+#### Changed
+- Default USER_TYPE to GIS Professional Advanced
+- Default log path
+
+#### Added
+- Open folder at end
+- Delete search file
+---
+
 ### Version 0.6.1 (2020-02-14)
 #### Changed
 - formatting style
----
-
 
 ### Version 0.6.0 (2020-01-27)
 #### Changed

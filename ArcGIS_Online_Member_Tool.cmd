@@ -36,8 +36,8 @@ setlocal enableextensions
 :: Commandlet
 ::	Set Console.
 	SET SCRIPT_NAME=ArcGIS_Online_Member_Tool
-	SET SCRIPT_VERSION=0.6.1
-	SET SCRIPT_BUILD=20200214-0956
+	SET SCRIPT_VERSION=0.7.0
+	SET SCRIPT_BUILD=20200909-0745
 	Title %SCRIPT_NAME% %SCRIPT_VERSION%
 	Prompt AOBU$G
 ::	Set mode
@@ -55,7 +55,7 @@ setlocal enableextensions
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :: CSV File Output
-SET "FILE_OUTPUT=%USERPROFILE%\Documents" 
+SET "FILE_OUTPUT=%USERPROFILE%\Documents\%SCRIPT_NAME%" 
 SET FILE_NAME=ArcGIS_Online_Bulk_Uploader.csv
 
 :: CSV Header format
@@ -68,7 +68,7 @@ SET ROLE=Student_Publisher
 
 :: DEFAULT USER Type
 ::	{Creator, GIS Professional Advanced}
-SET USER_TYPE=Creator
+SET "USER_TYPE=GIS Professional Advanced"
 
 
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -103,6 +103,11 @@ IF DEFINED DEBUG_USER SET $USERNAME=%DEBUG_USER%
 ::	contains a trailing space
 FOR /F "tokens=4 delims=/ " %%P IN ('date /T') DO SET YEAR=%%P
 :: /**************************************************************************/
+
+:: Check log output
+IF NOT EXIST "%FILE_OUTPUT%" MD "%FILE_OUTPUT%"
+:: /**************************************************************************/	
+
 
 :Main
 	cls
@@ -442,7 +447,10 @@ GoTo sGroup
 	:: cleanup
 	DEL /F /Q "%FILE_OUTPUT%\int_*" 2> nul
 	DEL /F /Q "%FILE_OUTPUT%\*.old" 2> nul
+	DEL /F /Q "%FILE_OUTPUT%\AD_Group_Search_Results.txt" 2> nul
 	echo.
+	::	Open folder
+	@explorer "%FILE_OUTPUT%"
 	echo Developed by:
 	echo David Geeraerts {dgeeraerts.evergreen@gmail.com}
 	echo.
