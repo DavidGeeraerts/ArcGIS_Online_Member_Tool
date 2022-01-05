@@ -18,6 +18,14 @@
 [//]: # (#### Deprecated)
 
 ---
+
+### Version 0.8.0 (2022-01-05)
+#### Changed
+- Default ROLE to Publisher
+
+---
+
+
 ### Version 0.7.0 (2020-09-09)
 #### Changed
 - Default USER_TYPE to GIS Professional Advanced
@@ -26,7 +34,7 @@
 #### Added
 - Open folder at end
 - Delete search file
----
+
 
 ### Version 0.6.1 (2020-02-14)
 #### Changed

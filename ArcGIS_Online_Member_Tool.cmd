@@ -19,11 +19,6 @@
 ::###########################################################################::
 
 
-@Echo Off
-setlocal enableextensions
-:: /**************************************************************************/
-
-
 ::###########################################################################::
 ::	VERSIONING INFORMATION
 ::	Semantic Versioning used
@@ -34,10 +29,14 @@ setlocal enableextensions
 ::###########################################################################::
 
 :: Commandlet
-::	Set Console.
+::	Set Console :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+@Echo Off
+setlocal enableextensions
+
 	SET SCRIPT_NAME=ArcGIS_Online_Member_Tool
-	SET SCRIPT_VERSION=0.7.0
-	SET SCRIPT_BUILD=20200909-0745
+	SET SCRIPT_VERSION=0.8.0
+	SET SCRIPT_BUILD=20220105 0815
 	Title %SCRIPT_NAME% %SCRIPT_VERSION%
 	Prompt AOBU$G
 ::	Set mode
@@ -46,7 +45,7 @@ setlocal enableextensions
 	mode con:cols=72
 	mode con:lines=40
 	color 0B
-:: /**************************************************************************/
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :: Declare Global variables
@@ -63,8 +62,9 @@ SET FILE_NAME=ArcGIS_Online_Bulk_Uploader.csv
 SET "CSV_HEADERS=First Name,Last Name,Email,Username,Role,User Type"
 
 :: DEFAULT Role
-::	{Data Editor, Publisher, Student_Publisher, User, Viewer}
-SET ROLE=Student_Publisher
+REM ArcGIS Online bulk uploader does not except custom roles. 
+::	{Data Editor, Publisher, User, Viewer}
+SET ROLE=Publisher
 
 :: DEFAULT USER Type
 ::	{Creator, GIS Professional Advanced}
