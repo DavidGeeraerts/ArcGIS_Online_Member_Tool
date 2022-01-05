@@ -77,8 +77,7 @@ SET "USER_TYPE=GIS Professional Advanced"
 
 :: DEFAULT OU for group search
 :: e.g. SET OU_DN=OU=,OU=,DC=<domain>,DC=<root>
-SET OU_DN=OU=offerings,OU=groups,OU=managed,DC=evergreen,DC=edu
-
+SET OU_DN=
 :: DEGUGGER
 :: Impersonate a User
 SET DEBUG_USER=
