@@ -19,11 +19,17 @@
 
 ---
 
+### Version 0.9.0 (2024-09-19)
+#### Added
+- updatd user types
+#### Changed
+- default user type to Professional Plus
+
+---
+
 ### Version 0.8.0 (2022-01-05)
 #### Changed
 - Default ROLE to Publisher
-
----
 
 
 ### Version 0.7.0 (2020-09-09)

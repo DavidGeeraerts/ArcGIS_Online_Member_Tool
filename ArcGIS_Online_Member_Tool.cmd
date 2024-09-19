@@ -35,8 +35,8 @@
 setlocal enableextensions
 
 	SET SCRIPT_NAME=ArcGIS_Online_Member_Tool
-	SET SCRIPT_VERSION=0.8.0
-	SET SCRIPT_BUILD=20220105 0815
+	SET SCRIPT_VERSION=0.9.0
+	SET SCRIPT_BUILD=20240919 0900
 	Title %SCRIPT_NAME% %SCRIPT_VERSION%
 	Prompt AOBU$G
 ::	Set mode
@@ -67,8 +67,10 @@ REM ArcGIS Online bulk uploader does not except custom roles.
 SET ROLE=Publisher
 
 :: DEFAULT USER Type
-::	{Creator, GIS Professional Advanced}
-SET "USER_TYPE=GIS Professional Advanced"
+::	{Creator, GIS Professional Advanced} # these are now deprecated as of 2024
+:: https://doc.arcgis.com/en/arcgis-online/administer/user-types-orgs.htm
+::	{Professional Plus, Professional, Creator, Mobile Worker, Contributor, Viewer}
+SET "USER_TYPE=Professional Plus"
 
 
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -76,7 +78,7 @@ SET "USER_TYPE=GIS Professional Advanced"
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :: DEFAULT OU for group search
-SET OU_DN=OU=offerings,OU=groups,OU=managed,DC=evergreen,DC=edu
+SET OU_DN=OU=
 
 :: DEGUGGER
 :: Impersonate a User
@@ -344,9 +346,9 @@ GoTo sGroup
 :sUT
 	IF DEFINED USER_TYPE ECHO Current User_Type: %USER_TYPE%
 	SET CHECKER=0
-	echo Define User_Type: ^{Creator, GIS Professional Advanced^}
+	echo Define User_Type: ^{Professional Plus, Professional, Creator, Mobile Worker, Contributor, Viewer^}
 	SET /P User_Type=User_Type:
-	FOR %%P IN (Creator "GIS Professional Advanced") DO IF /I "%User_Type%"=="%%~P" SET /A CHECKER=CHECKER+1
+	FOR %%P IN (Professional "Professional Plus" Creator "Mobile Worker" Contributor Viewer) DO IF /I "%User_Type%"=="%%~P" SET /A CHECKER=CHECKER+1
 	IF %CHECKER% EQU 0 (ECHO Not a valid entry!) & (SET User_Type=) & (GoTo sUT)
 	ECHO User_Type is set to: %USER_TYPE%
 	echo.
