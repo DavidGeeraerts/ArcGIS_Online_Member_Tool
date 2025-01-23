@@ -19,13 +19,25 @@
 
 ---
 
+### Version 0.10.0 (2025-01-23)
+#### Added
+- search student database for name information when first name is missing
+- variable for student db keyword
+- working directory variable
+- cache directory in temp
+
+#### Changed
+- CD to working directory
+  
+---
+
+
 ### Version 0.9.0 (2024-09-19)
 #### Added
 - updatd user types
 #### Changed
 - default user type to Professional Plus
 
----
 
 ### Version 0.8.0 (2022-01-05)
 #### Changed

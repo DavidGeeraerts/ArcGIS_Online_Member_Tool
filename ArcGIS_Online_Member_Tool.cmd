@@ -35,8 +35,8 @@
 setlocal enableextensions
 
 	SET SCRIPT_NAME=ArcGIS_Online_Member_Tool
-	SET SCRIPT_VERSION=0.9.0
-	SET SCRIPT_BUILD=20240919 0900
+	SET SCRIPT_VERSION=0.10.0
+	SET SCRIPT_BUILD=20250123 0945
 	Title %SCRIPT_NAME% %SCRIPT_VERSION%
 	Prompt AOBU$G
 ::	Set mode
@@ -72,13 +72,16 @@ SET ROLE=Publisher
 ::	{Professional Plus, Professional, Creator, Mobile Worker, Contributor, Viewer}
 SET "USER_TYPE=Professional Plus"
 
+:: Student database file
+:: keywork search
+SET $KEYWORD_DBF=student_
 
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::	ADVANCED SETTINGS
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :: DEFAULT OU for group search
-SET OU_DN=OU=
+SET OU_DN=OU=offerings,OU=groups,OU=managed,DC=evergreen,DC=edu
 
 :: DEGUGGER
 :: Impersonate a User
@@ -91,6 +94,12 @@ SET DEBUG_USER=
 ::##### Everything below here is 'hard-coded' [DO NOT MODIFY] #####
 ::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+:: Working Directory
+SET $WD=%~dp0
+CD /D %$WD%
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
 
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::	Defaults, not recommended to change in script, rather
@@ -380,7 +389,8 @@ GoTo sGroup
 	echo.
 
 	:: Check if there are any members without a first name
-	FINDSTR /B /R /C:"," "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%" 2> nul 1> nul
+	IF NOt EXIST %TEMP%\cache MD %TEMP%\cache
+	FINDSTR /B /R /C:"," "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%" 2> nul > %TEMP%\cache\student_no_first_name.txt
 	IF %ERRORLEVEL% NEQ 0 GoTo skipW
 	echo   !!WARNING!! !!WARNING!! !!WARNING!!
 	echo.
@@ -388,6 +398,23 @@ GoTo sGroup
 	Echo.
 	FINDSTR /R /B /C:"," "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%"
 	echo.
+	DIR /B /A:-D | FIND "%$KEYWORD_DBF%"> %TEMP%\cache\student_dbf.txt
+	SET /P $STUDENT_DB= < %TEMP%\cache\student_dbf.txt
+	IF NOT DEFINED $STUDENT_DB GoTo skipSDF
+	IF NOT EXIST %$STUDENT_DB% GoTo skipSDF
+	echo Searching student database for information...
+	:: Find the student records in the database
+		:: get student UPN
+	IF EXIST %TEMP%\cache\student_no_first_name_upn.txt DEL /F /Q %TEMP%\cache\student_no_first_name_upn.txt
+	FOR /F "skip=1 tokens=2 delims=," %%P IN (%TEMP%\cache\student_no_first_name.txt) Do echo %%P>> %TEMP%\cache\student_no_first_name_upn.txt
+	:: Find the student records in the database using student UPN
+	IF EXIST %TEMP%\cache\student_no_first_name_db_results.txt DEL /F /Q %TEMP%\cache\student_no_first_name_db_results.txt
+	FOR /F "tokens=1 delims=" %%P IN (%TEMP%\cache\student_no_first_name_upn.txt) Do FINDSTR /I /C:"%%P" %$STUDENT_DB% >> "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%_student_no_first_name_db_results.txt"
+	type "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%_student_no_first_name_db_results.txt"
+	echo.
+	echo Fix manually.
+:skipSDF
+
 pause
 
 :skipW
@@ -450,6 +477,7 @@ GoTo sGroup
 	DEL /F /Q "%FILE_OUTPUT%\int_*" 2> nul
 	DEL /F /Q "%FILE_OUTPUT%\*.old" 2> nul
 	DEL /F /Q "%FILE_OUTPUT%\AD_Group_Search_Results.txt" 2> nul
+	RD /S /Q "%TEMP%\cache" 2> nul
 	echo.
 	::	Open folder
 	@explorer "%FILE_OUTPUT%"
