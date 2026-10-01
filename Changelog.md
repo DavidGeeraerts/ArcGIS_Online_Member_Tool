@@ -19,6 +19,17 @@
 
 ---
 
+### Version 1.1.0 (2026-10-01)
+#### Added
+- final check on the csv import file for any remaining blank first names, warning the user that those students were not found in the student database
+- clear_cach variable -- for debugging
+
+#### Changed
+- console output uses powershell for color text
+
+---
+
+
 ### Version 1.0.0 (2026-10-01)
 #### Added
 - `Fix-MissingName.ps1` PowerShell script to automatically fill in First Name and Last Name from the student database for users missing name
@@ -31,8 +42,6 @@
 
 #### Fixed
 - `FOR /F` loops reading cache files now use `usebackq` with quoted paths, fixing failures when the script path contains spaces
-
----
 
 ### Version 0.10.0 (2025-01-23)
 #### Added

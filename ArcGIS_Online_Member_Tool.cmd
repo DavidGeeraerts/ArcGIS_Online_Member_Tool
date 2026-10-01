@@ -35,8 +35,8 @@
 setlocal enableextensions
 
 	SET SCRIPT_NAME=ArcGIS_Online_Member_Tool
-	SET SCRIPT_VERSION=1.0.0
-	SET SCRIPT_BUILD=20261001 1030
+	SET SCRIPT_VERSION=1.1.0
+	SET SCRIPT_BUILD=20261001 1220
 	Title %SCRIPT_NAME% %SCRIPT_VERSION%
 	Prompt AOBU$G
 ::	Set mode
@@ -86,6 +86,9 @@ SET OU_DN=OU=offerings,OU=groups,OU=managed,DC=evergreen,DC=edu
 :: DEGUGGER
 :: Impersonate a User
 SET DEBUG_USER=
+
+:: Cleanup cache folder
+SET $CLEANUP_CACHE=1
 :: /**************************************************************************/
 
 
@@ -185,10 +188,10 @@ echo   ******************************************************************
 echo.
 :year
 	SET CHECKER=0
-	IF DEFINED YEAR Echo Year currently set to: %YEAR%
-	echo [REQUIRED] Set the academic year as yyyy:
+	IF DEFINED YEAR @powershell -NoProfile -Command "Write-Host 'Current Year set to:' %YEAR% -ForegroundColor DarkGray"
+	@powershell -NoProfile -Command "Write-Host '[REQUIRED] Set the academic year as YYYY:' -ForegroundColor DarkYellow"
 	SET /P YEAR=Academic Year:
-	echo Academic Year set to: %YEAR%
+	@powershell -NoProfile -Command "Write-Host 'Academic Year set to: %YEAR%' -ForegroundColor DarkGreen"
 	IF NOT DEFINED YEAR GoTo year
 	FOR %%P IN (a b c d e f g h i j k l m n o p q r s t u v w x y z) DO (
 		echo %YEAR% | FIND /I "%%P" && SET /A CHECKER=CHECKER+1
@@ -248,21 +251,22 @@ If ERRORLevel 1 GoTo sGroup
 
 :year
 	SET CHECKER=0
-	IF DEFINED YEAR Echo Year currently set to: %YEAR%
-	echo [REQUIRED] Set the academic year as yyyy:
+	IF DEFINED YEAR @powershell -NoProfile -Command "Write-Host 'Current Year set to:' %YEAR% -ForegroundColor DarkGray"
+	@powershell -NoProfile -Command "Write-Host '[REQUIRED] Set the academic year as YYYY:' -ForegroundColor DarkYellow"
+	echo e.g. 2026-2027 = 2027 ; 2027-2028 = 2028
 	SET /P YEAR=Academic Year:
 	IF NOT DEFINED YEAR GoTo year
 	FOR %%P IN (a b c d e f g h i j k l m n o p q r s t u v w x y z) DO echo %YEAR% | FIND /I "%%P" && SET /A CHECKER=CHECKER+1
 	IF %CHECKER% NEQ 0 ECHO Year contains alpha character!
 	IF %CHECKER% NEQ 0 SET YEAR=
 	IF %CHECKER% NEQ 0 GoTo year
-	echo Academic Year set to: %YEAR%
+	@powershell -NoProfile -Command "Write-Host 'Academic Year set to: %YEAR%' -ForegroundColor DarkGreen"
 	echo.
 
 :quarter
 	SET CHECKER=0
-	IF DEFINED QUARTER Echo Quarter currently set to: %QUARTER%
-	echo [REQUIRED] Set the academic quarter {*, fall, winter, spring, summer}:
+	IF DEFINED QUARTER @powershell -NoProfile -Command "Write-Host 'Current Quarter set to:' %QUARTER% -ForegroundColor DarkGray"
+	@powershell -NoProfile -Command "Write-Host '[REQUIRED] Set the academic quarter {*, fall, winter, spring, summer}:' -ForegroundColor DarkYellow"
 	SET /P QUARTER=Academic Quarter:
 	IF NOT DEFINED QUARTER GoTo quarter
 	echo %QUARTER% | FIND "*"
@@ -271,21 +275,21 @@ If ERRORLevel 1 GoTo sGroup
 	IF %CHECKER% LEQ 0 ECHO quarter is invalid!
 	IF %CHECKER% LEQ 0 SET QUARTER=
 	IF %CHECKER% LEQ 0 GoTo quarter
-	echo Academic quarter set to: %QUARTER%
+	@powershell -NoProfile -Command "Write-Host 'Academic quarter set to: %QUARTER%' -ForegroundColor DarkGreen"
 :skipTQ
 
 	echo.
 
 :keyterm
-	IF DEFINED KEY_TERM Echo Key term currently set to: %KEY_TERM%
-	echo [REQUIRED] Set a key search term, i.e. GIS:
+	IF DEFINED KEY_TERM @powershell -NoProfile -Command "Write-Host 'Current Key term set to:' %KEY_TERM% -ForegroundColor DarkGray"
+	@powershell -NoProfile -Command "Write-Host '[REQUIRED] Set a key search term, i.e. GIS:' -ForegroundColor DarkYellow"
 	SET /P KEY_TERM=Key term:
 	IF NOT DEFINED KEY_TERM GoTo keyterm
 	echo %KEY_TERM% | FIND "*"
 	IF %ERRORLEVEL% EQU 0 SET KEY_TERM=
 	IF %ERRORLEVEL% EQU 0 echo Cannot be "*" wildcard!
 	IF %ERRORLEVEL% EQU 0 GoTo keyterm
-	echo Search term set to: %KEY_TERM%
+	@powershell -NoProfile -Command "Write-Host 'Search term set to: %KEY_TERM%' -ForegroundColor DarkGreen"
 	echo.
 	:: Convert term to numeric
 	IF /I "%QUARTER%"=="*" SET $QUARTER=*
@@ -341,31 +345,31 @@ GoTo sGroup
 	Echo What is the name of the group to use for reference?
 	echo This should be an *_STU group with students!
 	echo.
-	echo current Group name: %GROUP_NAME%
+	IF DEFINED GROUP_NAME @powershell -NoProfile -Command "Write-Host 'Current Group name set to:' %GROUP_NAME% -ForegroundColor DarkGray"
 	SET /P GROUP_NAME=Group Name:
 	IF NOT DEFINED GROUP_NAME GoTo sGroup
 	echo checking group...
 	DSQUERY GROUP -o dn %OU_DN% -name %GROUP_NAME% -limit 1 | DSGET GROUP -samid -desc 2> nul
 	IF %ERRORLEVEL% NEQ 0 GoTo error10
-	echo Group is set to: %GROUP_NAME%
+	@powershell -NoProfile -Command "Write-Host 'Group is set to: %GROUP_NAME%' -ForegroundColor DarkGreen"
 	echo.
 :sRole
-	IF DEFINED ROLE ECHO Current role: %ROLE%
+	@powershell -NoProfile -Command "Write-Host 'Current role set to:' %ROLE% -ForegroundColor DarkGray"
 	SET CHECKER=0
-	echo Define Role: ^{Data Editor, Publisher, Student_Publisher, User, Viewer^}
+	echo Defined Roles: ^{Data Editor, Publisher, Student_Publisher, User, Viewer^}
 	SET /P ROLE=Role:
 	FOR %%P IN ("Data Editor" Publisher Student_Publisher User Viewer) DO IF /I "%ROLE%"=="%%~P" SET /A CHECKER=CHECKER+1
 	IF %CHECKER% EQU 0 (ECHO Not a valid entry!) & (SET ROLE=) & (GoTo sRole)
-	ECHO Role is set to: %ROLE%
+	@powershell -NoProfile -Command "Write-Host 'Role is set to: %ROLE%' -ForegroundColor DarkGreen"
 	echo.
 :sUT
-	IF DEFINED USER_TYPE ECHO Current User_Type: %USER_TYPE%
+	IF DEFINED USER_TYPE @powershell -NoProfile -Command "Write-Host 'Current User_Type set to:' %USER_TYPE% -ForegroundColor DarkGray"
 	SET CHECKER=0
-	echo Define User_Type: ^{Professional Plus, Professional, Creator, Mobile Worker, Contributor, Viewer^}
+	echo Defined User_Types: ^{Professional Plus, Professional, Creator, Mobile Worker, Contributor, Viewer^}
 	SET /P User_Type=User_Type:
 	FOR %%P IN (Professional "Professional Plus" Creator "Mobile Worker" Contributor Viewer) DO IF /I "%User_Type%"=="%%~P" SET /A CHECKER=CHECKER+1
 	IF %CHECKER% EQU 0 (ECHO Not a valid entry!) & (SET User_Type=) & (GoTo sUT)
-	ECHO User_Type is set to: %USER_TYPE%
+	@powershell -NoProfile -Command "Write-Host 'User_Type is set to: %USER_TYPE%' -ForegroundColor DarkGreen"
 	echo.
 	IF EXIST "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%" copy /Y "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%" "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%.old"
 	IF EXIST "%FILE_OUTPUT%\int_%GROUP_NAME%_%FILE_NAME%" DEL /F /Q "%FILE_OUTPUT%\int_%GROUP_NAME%_%FILE_NAME%"
@@ -398,7 +402,7 @@ GoTo sGroup
 
 	FINDSTR /B /R /C:"," "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%" 2> nul > "%$cache%\student_no_first_name.txt"
 	IF %ERRORLEVEL% NEQ 0 GoTo skipW
-	echo   !!WARNING!! !!WARNING!! !!WARNING!!
+	@powershell -NoProfile -Command "Write-Host '  !!WARNING!! !!WARNING!! !!WARNING!!' -ForegroundColor Yellow"
 	echo.
 	echo The following users don't have a first name:
 	Echo.
@@ -426,6 +430,19 @@ GoTo sGroup
 		echo Something went wrong with updating the CSV import file. Please fix manually.
 	)
 :skipSDF
+
+:: Final check - a remaining blank first name means the student wasn't found in the database
+FINDSTR /B /R /C:"," "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%" 2> nul > "%$cache%\student_still_missing_name.txt"
+IF %ERRORLEVEL% EQU 0 (
+    echo.
+    @powershell -NoProfile -Command "Write-Host '  !!WARNING!! !!WARNING!! !!WARNING!!' -ForegroundColor Yellow"
+    echo.
+    @powershell -NoProfile -Command "Write-Host 'The following users were not found in the student database and still need a first name:' -ForegroundColor White"
+    echo.
+    type "%$cache%\student_still_missing_name.txt"
+    echo.
+    @powershell -NoProfile -Command "Write-Host 'Please fix these entries manually before importing into ArcGIS Online.' -ForegroundColor White"
+)
 
 pause
 
@@ -489,19 +506,17 @@ GoTo sGroup
 	DEL /F /Q "%FILE_OUTPUT%\int_*" 2> nul
 	DEL /F /Q "%FILE_OUTPUT%\*.old" 2> nul
 	DEL /F /Q "%FILE_OUTPUT%\AD_Group_Search_Results.txt" 2> nul
-	RD /S /Q "%$cache%" 2> nul
+	IF $CLEANUP_CACHE==1 (
+		RD /S /Q "%$cache%" 2> nul
+	)
 	echo.
 	::	Open folder
 	@explorer "%FILE_OUTPUT%"
 	echo Developed by:
 	echo David Geeraerts {dgeeraerts.evergreen@gmail.com}
 	echo.
-	echo.
-	echo.
-	echo Contributors:
-	echo.
-	echo.
-	echo.
+	echo GitHub Repository:
+	echo https://github.com/dgeeraerts/ArcGIS_Online_Member_Tool
 	echo.
 	echo.
 	echo Copyleft License
