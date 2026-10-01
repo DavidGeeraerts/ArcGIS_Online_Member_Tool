@@ -35,8 +35,8 @@
 setlocal enableextensions
 
 	SET SCRIPT_NAME=ArcGIS_Online_Member_Tool
-	SET SCRIPT_VERSION=0.10.0
-	SET SCRIPT_BUILD=20250123 0945
+	SET SCRIPT_VERSION=1.0.0
+	SET SCRIPT_BUILD=20261001 1030
 	Title %SCRIPT_NAME% %SCRIPT_VERSION%
 	Prompt AOBU$G
 ::	Set mode
@@ -100,6 +100,10 @@ SET $WD=%~dp0
 CD /D %$WD%
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+:: Cache directory
+SET $cache=%$WD%cache
+IF NOT EXIST "%$cache%" MD "%$cache%"
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::	Defaults, not recommended to change in script, rather
@@ -125,6 +129,8 @@ IF NOT EXIST "%FILE_OUTPUT%" MD "%FILE_OUTPUT%"
 	Echo   ******************************************************************
 	Echo.
 	Echo                     %SCRIPT_NAME%
+	Echo.
+	Echo   			^(Version: %SCRIPT_VERSION%^)
 	echo.
 	Echo   ******************************************************************
 	Echo.
@@ -389,8 +395,8 @@ GoTo sGroup
 	echo.
 
 	:: Check if there are any members without a first name
-	IF NOt EXIST %TEMP%\cache MD %TEMP%\cache
-	FINDSTR /B /R /C:"," "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%" 2> nul > %TEMP%\cache\student_no_first_name.txt
+
+	FINDSTR /B /R /C:"," "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%" 2> nul > "%$cache%\student_no_first_name.txt"
 	IF %ERRORLEVEL% NEQ 0 GoTo skipW
 	echo   !!WARNING!! !!WARNING!! !!WARNING!!
 	echo.
@@ -398,21 +404,27 @@ GoTo sGroup
 	Echo.
 	FINDSTR /R /B /C:"," "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%"
 	echo.
-	DIR /B /A:-D | FIND "%$KEYWORD_DBF%"> %TEMP%\cache\student_dbf.txt
-	SET /P $STUDENT_DB= < %TEMP%\cache\student_dbf.txt
+	DIR /B /A:-D | FIND "%$KEYWORD_DBF%"> "%$cache%\student_dbf.txt"
+	SET /P $STUDENT_DB= < "%$cache%\student_dbf.txt"
 	IF NOT DEFINED $STUDENT_DB GoTo skipSDF
 	IF NOT EXIST %$STUDENT_DB% GoTo skipSDF
 	echo Searching student database for information...
 	:: Find the student records in the database
 		:: get student UPN
-	IF EXIST %TEMP%\cache\student_no_first_name_upn.txt DEL /F /Q %TEMP%\cache\student_no_first_name_upn.txt
-	FOR /F "skip=1 tokens=2 delims=," %%P IN (%TEMP%\cache\student_no_first_name.txt) Do echo %%P>> %TEMP%\cache\student_no_first_name_upn.txt
+	IF EXIST "%$cache%\student_no_first_name_upn.txt" DEL /F /Q "%$cache%\student_no_first_name_upn.txt"
+	FOR /F "usebackq tokens=2 delims=," %%P IN ("%$cache%\student_no_first_name.txt") Do echo %%P>> "%$cache%\student_no_first_name_upn.txt"
 	:: Find the student records in the database using student UPN
-	IF EXIST %TEMP%\cache\student_no_first_name_db_results.txt DEL /F /Q %TEMP%\cache\student_no_first_name_db_results.txt
-	FOR /F "tokens=1 delims=" %%P IN (%TEMP%\cache\student_no_first_name_upn.txt) Do FINDSTR /I /C:"%%P" %$STUDENT_DB% >> "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%_student_no_first_name_db_results.txt"
-	type "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%_student_no_first_name_db_results.txt"
+	IF EXIST "%$cache%\student_no_first_name_db_results.txt" DEL /F /Q "%$cache%\student_no_first_name_db_results.txt"
+	FOR /F "usebackq tokens=1 delims=" %%P IN ("%$cache%\student_no_first_name_upn.txt") Do FINDSTR /I /C:"%%P" %$STUDENT_DB% >> "%$cache%\%GROUP_NAME%_%FILE_NAME%_student_no_first_name_db_results.txt"
+	type "%$cache%\%GROUP_NAME%_%FILE_NAME%_student_no_first_name_db_results.txt"
 	echo.
-	echo Fix manually.
+	@powershell -NoProfile -ExecutionPolicy Bypass -File "%$WD%Fix-MissingName.ps1" -CsvPath "%FILE_OUTPUT%\%GROUP_NAME%_%FILE_NAME%" -StudentDb "%$STUDENT_DB%"
+	SET $PS_RESULT=%ERRORLEVEL%
+	IF %$PS_RESULT% EQU 0 (
+		echo CSV import file has been successfully updated with user names.
+	) ELSE (
+		echo Something went wrong with updating the CSV import file. Please fix manually.
+	)
 :skipSDF
 
 pause
@@ -477,7 +489,7 @@ GoTo sGroup
 	DEL /F /Q "%FILE_OUTPUT%\int_*" 2> nul
 	DEL /F /Q "%FILE_OUTPUT%\*.old" 2> nul
 	DEL /F /Q "%FILE_OUTPUT%\AD_Group_Search_Results.txt" 2> nul
-	RD /S /Q "%TEMP%\cache" 2> nul
+	RD /S /Q "%$cache%" 2> nul
 	echo.
 	::	Open folder
 	@explorer "%FILE_OUTPUT%"

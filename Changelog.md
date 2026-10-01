@@ -19,6 +19,21 @@
 
 ---
 
+### Version 1.0.0 (2026-10-01)
+#### Added
+- `Fix-MissingName.ps1` PowerShell script to automatically fill in First Name and Last Name from the student database for users missing name
+- call to `Fix-MissingName.ps1` after the student database search
+- console feedback confirming the csv import file was successfully updated with user names
+- version number display in the Main Menu banner
+
+#### Changed
+- cache directory moved from `%TEMP%\cache` to a `cache` folder local to the script directory
+
+#### Fixed
+- `FOR /F` loops reading cache files now use `usebackq` with quoted paths, fixing failures when the script path contains spaces
+
+---
+
 ### Version 0.10.0 (2025-01-23)
 #### Added
 - search student database for name information when first name is missing
